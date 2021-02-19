@@ -66,22 +66,14 @@ public class GantryShaftBlock extends DirectionalKineticBlock {
 	}
 
 	@Override
-	public ActionResultType onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand,
-		BlockRayTraceResult ray) {
+	public ActionResultType onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockRayTraceResult ray) {
 		ItemStack heldItem = player.getHeldItem(hand);
 
 		IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
 		if (!placementHelper.matchesItem(heldItem))
 			return ActionResultType.PASS;
 
-		PlacementOffset offset = placementHelper.getOffset(world, state, pos, ray);
-
-		if (!offset.isReplaceable(world))
-			return ActionResultType.PASS;
-
-		offset.placeInWorld(world, ((BlockItem) heldItem.getItem()).getBlock()
-			.getDefaultState(), player, heldItem);
-		return ActionResultType.SUCCESS;
+		return placementHelper.getOffset(world, state, pos, ray).placeInWorld(world, ((BlockItem) heldItem.getItem()), player, hand, ray);
 	}
 
 	@Override
@@ -288,7 +280,6 @@ public class GantryShaftBlock extends DirectionalKineticBlock {
 			return PlacementOffset.success(offset.getPos(), offset.getTransform()
 				.andThen(s -> s.with(POWERED, state.get(POWERED))));
 		}
-
 	}
 
 }

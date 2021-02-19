@@ -6,7 +6,9 @@ import java.util.List;
 
 import com.simibubi.create.content.contraptions.base.GeneratingKineticTileEntity;
 import com.simibubi.create.content.contraptions.components.structureMovement.AbstractContraptionEntity;
+import com.simibubi.create.content.contraptions.components.structureMovement.AssemblyException;
 import com.simibubi.create.content.contraptions.components.structureMovement.ControlledContraptionEntity;
+import com.simibubi.create.content.contraptions.components.structureMovement.IDisplayAssemblyExceptions;
 import com.simibubi.create.foundation.advancement.AllTriggers;
 import com.simibubi.create.foundation.item.TooltipHelper;
 import com.simibubi.create.foundation.tileEntity.TileEntityBehaviour;
@@ -23,7 +25,7 @@ import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 
-public class MechanicalBearingTileEntity extends GeneratingKineticTileEntity implements IBearingTileEntity {
+public class MechanicalBearingTileEntity extends GeneratingKineticTileEntity implements IBearingTileEntity, IDisplayAssemblyExceptions {
 
 	protected ScrollOptionBehaviour<RotationMode> movementMode;
 	protected ControlledContraptionEntity movedContraption;
@@ -31,6 +33,7 @@ public class MechanicalBearingTileEntity extends GeneratingKineticTileEntity imp
 	protected boolean running;
 	protected boolean assembleNextTick;
 	protected float clientAngleDiff;
+	protected AssemblyException lastException;
 
 	public MechanicalBearingTileEntity(TileEntityType<? extends MechanicalBearingTileEntity> type) {
 		super(type);
@@ -62,6 +65,7 @@ public class MechanicalBearingTileEntity extends GeneratingKineticTileEntity imp
 	public void write(CompoundNBT compound, boolean clientPacket) {
 		compound.putBoolean("Running", running);
 		compound.putFloat("Angle", angle);
+		AssemblyException.write(compound, lastException);
 		super.write(compound, clientPacket);
 	}
 
@@ -70,6 +74,7 @@ public class MechanicalBearingTileEntity extends GeneratingKineticTileEntity imp
 		float angleBefore = angle;
 		running = compound.getBoolean("Running");
 		angle = compound.getFloat("Angle");
+		lastException = AssemblyException.read(compound);
 		super.read(compound, clientPacket);
 		if (!clientPacket)
 			return;
@@ -104,6 +109,11 @@ public class MechanicalBearingTileEntity extends GeneratingKineticTileEntity imp
 		return speed;
 	}
 
+	@Override
+	public AssemblyException getLastAssemblyException() {
+		return lastException;
+	}
+
 	protected boolean isWindmill() {
 		return false;
 	}
@@ -120,8 +130,16 @@ public class MechanicalBearingTileEntity extends GeneratingKineticTileEntity imp
 
 		Direction direction = getBlockState().get(FACING);
 		BearingContraption contraption = new BearingContraption(isWindmill(), direction);
-		if (!contraption.assemble(world, pos))
+		try {
+			if (!contraption.assemble(world, pos))
+				return;
+
+			lastException = null;
+		} catch (AssemblyException e) {
+			lastException = e;
+			sendData();
 			return;
+		}
 
 		if (isWindmill())
 			AllTriggers.triggerForNearbyPlayers(AllTriggers.WINDMILL, world, pos, 5);
@@ -282,4 +300,8 @@ public class MechanicalBearingTileEntity extends GeneratingKineticTileEntity imp
 		return true;
 	}
 
+	@Override
+	public boolean shouldRenderAsTE() {
+		return true;
+	}
 }

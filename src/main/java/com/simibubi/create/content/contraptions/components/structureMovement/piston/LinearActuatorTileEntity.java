@@ -4,8 +4,10 @@ import java.util.List;
 
 import com.simibubi.create.content.contraptions.base.KineticTileEntity;
 import com.simibubi.create.content.contraptions.components.structureMovement.AbstractContraptionEntity;
+import com.simibubi.create.content.contraptions.components.structureMovement.AssemblyException;
 import com.simibubi.create.content.contraptions.components.structureMovement.ControlledContraptionEntity;
 import com.simibubi.create.content.contraptions.components.structureMovement.IControlContraption;
+import com.simibubi.create.content.contraptions.components.structureMovement.IDisplayAssemblyExceptions;
 import com.simibubi.create.foundation.tileEntity.TileEntityBehaviour;
 import com.simibubi.create.foundation.tileEntity.behaviour.ValueBoxTransform;
 import com.simibubi.create.foundation.tileEntity.behaviour.scrollvalue.ScrollOptionBehaviour;
@@ -18,7 +20,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
-public abstract class LinearActuatorTileEntity extends KineticTileEntity implements IControlContraption {
+public abstract class LinearActuatorTileEntity extends KineticTileEntity implements IControlContraption, IDisplayAssemblyExceptions {
 
 	public float offset;
 	public boolean running;
@@ -27,6 +29,7 @@ public abstract class LinearActuatorTileEntity extends KineticTileEntity impleme
 	protected boolean forceMove;
 	protected ScrollOptionBehaviour<MovementMode> movementMode;
 	protected boolean waitingForSpeedChange;
+	protected AssemblyException lastException;
 
 	// Custom position sync
 	protected float clientOffsetDiff;
@@ -80,7 +83,13 @@ public abstract class LinearActuatorTileEntity extends KineticTileEntity impleme
 				return;
 			} else {
 				if (getSpeed() != 0)
-					assemble();
+					try {
+						assemble();
+						lastException = null;
+					} catch (AssemblyException e) {
+						lastException = e;
+					}
+				sendData();
 			}
 			return;
 		}
@@ -153,6 +162,7 @@ public abstract class LinearActuatorTileEntity extends KineticTileEntity impleme
 		compound.putBoolean("Running", running);
 		compound.putBoolean("Waiting", waitingForSpeedChange);
 		compound.putFloat("Offset", offset);
+		AssemblyException.write(compound, lastException);
 		super.write(compound, clientPacket);
 
 		if (clientPacket && forceMove) {
@@ -169,6 +179,7 @@ public abstract class LinearActuatorTileEntity extends KineticTileEntity impleme
 		running = compound.getBoolean("Running");
 		waitingForSpeedChange = compound.getBoolean("Waiting");
 		offset = compound.getFloat("Offset");
+		lastException = AssemblyException.read(compound);
 		super.read(compound, clientPacket);
 
 		if (!clientPacket)
@@ -183,9 +194,14 @@ public abstract class LinearActuatorTileEntity extends KineticTileEntity impleme
 			movedContraption = null;
 	}
 
+	@Override
+	public AssemblyException getLastAssemblyException() {
+		return lastException;
+	}
+
 	public abstract void disassemble();
 
-	protected abstract void assemble();
+	protected abstract void assemble() throws AssemblyException;
 
 	protected abstract int getExtensionRange();
 
@@ -288,5 +304,4 @@ public abstract class LinearActuatorTileEntity extends KineticTileEntity impleme
 	public BlockPos getBlockPosition() {
 		return pos;
 	}
-
 }

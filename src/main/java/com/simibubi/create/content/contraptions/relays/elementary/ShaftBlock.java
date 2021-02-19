@@ -1,5 +1,7 @@
 package com.simibubi.create.content.contraptions.relays.elementary;
 
+import java.util.function.Predicate;
+
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.content.contraptions.base.KineticTileEntity;
@@ -7,8 +9,8 @@ import com.simibubi.create.content.contraptions.relays.encased.EncasedShaftBlock
 import com.simibubi.create.foundation.advancement.AllTriggers;
 import com.simibubi.create.foundation.utility.placement.IPlacementHelper;
 import com.simibubi.create.foundation.utility.placement.PlacementHelpers;
-import com.simibubi.create.foundation.utility.placement.PlacementOffset;
 import com.simibubi.create.foundation.utility.placement.util.PoleHelper;
+
 import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
@@ -23,8 +25,6 @@ import net.minecraft.util.math.shapes.ISelectionContext;
 import net.minecraft.util.math.shapes.VoxelShape;
 import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
-
-import java.util.function.Predicate;
 
 public class ShaftBlock extends AbstractShaftBlock {
 
@@ -77,26 +77,8 @@ public class ShaftBlock extends AbstractShaftBlock {
 		}
 
 		IPlacementHelper helper = PlacementHelpers.get(placementHelperId);
-		if (helper.getItemPredicate().test(heldItem)) {
-			PlacementOffset offset = helper.getOffset(world, state, pos, ray);
-
-			if (!offset.isReplaceable(world))
-				return ActionResultType.PASS;
-
-			offset.placeInWorld(world, (BlockItem) heldItem.getItem(), player, heldItem);
-
-			/*BlockPos newPos = new BlockPos(offset.getPos());
-
-			if (world.isRemote)
-				return ActionResultType.SUCCESS;
-
-			Block block = ((BlockItem) heldItem.getItem()).getBlock();
-			world.setBlockState(newPos, offset.getTransform().apply(block.getDefaultState()));
-			if (!player.isCreative())
-				heldItem.shrink(1);*/
-
-			return ActionResultType.SUCCESS;
-		}
+		if (helper.matchesItem(heldItem))
+			return helper.getOffset(world, state, pos, ray).placeInWorld(world, (BlockItem) heldItem.getItem(), player, hand, ray);
 
 		return ActionResultType.PASS;
 	}

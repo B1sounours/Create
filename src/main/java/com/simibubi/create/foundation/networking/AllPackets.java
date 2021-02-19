@@ -1,5 +1,8 @@
 package com.simibubi.create.foundation.networking;
 
+import static net.minecraftforge.fml.network.NetworkDirection.PLAY_TO_CLIENT;
+import static net.minecraftforge.fml.network.NetworkDirection.PLAY_TO_SERVER;
+
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -31,6 +34,7 @@ import com.simibubi.create.content.schematics.packet.SchematicPlacePacket;
 import com.simibubi.create.content.schematics.packet.SchematicSyncPacket;
 import com.simibubi.create.content.schematics.packet.SchematicUploadPacket;
 import com.simibubi.create.foundation.command.ConfigureConfigPacket;
+import com.simibubi.create.foundation.command.HighlightPacket;
 import com.simibubi.create.foundation.tileEntity.behaviour.filtering.FilteringCountUpdatePacket;
 import com.simibubi.create.foundation.tileEntity.behaviour.scrollvalue.ScrollValueUpdatePacket;
 import com.simibubi.create.foundation.utility.ServerSpeedProvider;
@@ -45,9 +49,6 @@ import net.minecraftforge.fml.network.NetworkRegistry;
 import net.minecraftforge.fml.network.PacketDistributor;
 import net.minecraftforge.fml.network.PacketDistributor.TargetPoint;
 import net.minecraftforge.fml.network.simple.SimpleChannel;
-
-import static net.minecraftforge.fml.network.NetworkDirection.PLAY_TO_SERVER;
-import static net.minecraftforge.fml.network.NetworkDirection.PLAY_TO_CLIENT;
 
 public enum AllPackets {
 
@@ -85,6 +86,7 @@ public enum AllPackets {
 	FLUID_SPLASH(FluidSplashPacket.class, FluidSplashPacket::new, PLAY_TO_CLIENT),
 	CONTRAPTION_FLUID(ContraptionFluidPacket.class, ContraptionFluidPacket::new, PLAY_TO_CLIENT),
 	GANTRY_UPDATE(GantryContraptionUpdatePacket.class, GantryContraptionUpdatePacket::new, PLAY_TO_CLIENT),
+	BLOCK_HIGHLIGHT(HighlightPacket.class, HighlightPacket::new, PLAY_TO_CLIENT)
 
 	;
 

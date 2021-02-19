@@ -1,11 +1,20 @@
 package com.simibubi.create.foundation.utility.placement;
 
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
 import com.simibubi.create.CreateClient;
 import com.simibubi.create.foundation.utility.Iterate;
 import com.simibubi.create.foundation.utility.Pair;
 import com.simibubi.create.foundation.utility.VecHelper;
+
 import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
@@ -13,14 +22,13 @@ import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-
 @MethodsReturnNonnullByDefault
 public interface IPlacementHelper {
+
+	/**
+	 * used as an identifier in SuperGlueHandler to skip blocks placed by helpers
+	 */
+	BlockState ID = new BlockState(Blocks.AIR, null);
 
 	/**
 	 * @return a predicate that gets tested with the items held in the players hands,
@@ -40,9 +48,21 @@ public interface IPlacementHelper {
 	 */
 	PlacementOffset getOffset(World world, BlockState state, BlockPos pos, BlockRayTraceResult ray);
 
+	//overrides the default ghost state of the helper with the actual state of the held block item, this is used in PlacementHelpers and can be ignored in most cases
+	default PlacementOffset getOffset(World world, BlockState state, BlockPos pos, BlockRayTraceResult ray, ItemStack heldItem) {
+		PlacementOffset offset = getOffset(world, state, pos, ray);
+		if (heldItem.getItem() instanceof BlockItem) {
+			BlockItem blockItem = (BlockItem) heldItem.getItem();
+			offset = offset.withGhostState(blockItem.getBlock().getDefaultState());
+		}
+		return offset;
+	}
+
 	//only gets called when placementOffset is successful
 	default void renderAt(BlockPos pos, BlockState state, BlockRayTraceResult ray, PlacementOffset offset) {
-		IPlacementHelper.renderArrow(VecHelper.getCenterOf(pos), VecHelper.getCenterOf(offset.getPos()), ray.getFace());
+		//IPlacementHelper.renderArrow(VecHelper.getCenterOf(pos), VecHelper.getCenterOf(offset.getPos()), ray.getFace());
+
+		displayGhost(offset);
 	}
 
 	static void renderArrow(Vec3d center, Vec3d target, Direction arrowPlane) {
@@ -61,23 +81,14 @@ public interface IPlacementHelper {
 		CreateClient.outliner.showLine("placementArrowB" + center + target, start.add(offset), endB.add(offset)).lineWidth(1/16f);
 	}
 
-	/*@OnlyIn(Dist.CLIENT)
-	static void renderArrow(Vec3d center, Direction towards, BlockRayTraceResult ray) {
-		Direction hitFace = ray.getFace();
-
-		if (hitFace.getAxis() == towards.getAxis())
+	default void displayGhost(PlacementOffset offset) {
+		if (!offset.hasGhostState())
 			return;
 
-		//get the two perpendicular directions to form the arrow
-		Direction[] directions = Arrays.stream(Direction.Axis.values()).filter(axis -> axis != hitFace.getAxis() && axis != towards.getAxis()).map(Iterate::directionsInAxis).findFirst().orElse(new Direction[]{});
-		Vec3d startOffset = new Vec3d(towards.getDirectionVec());
-		Vec3d start = center.add(startOffset);
-		for (Direction dir : directions) {
-			Vec3d arrowOffset = new Vec3d(dir.getDirectionVec()).scale(.25);
-			Vec3d target = center.add(startOffset.scale(0.75)).add(arrowOffset);
-			CreateClient.outliner.showLine("placementArrow" + towards + dir, start, target).lineWidth(1/16f);
-		}
-	}*/
+		CreateClient.ghostBlocks.showGhostState(this, offset.getTransform().apply(offset.getGhostState()))
+				.at(offset.getBlockPos())
+				.breathingAlpha();
+	}
 
 	static List<Direction> orderedByDistanceOnlyAxis(BlockPos pos, Vec3d hit, Direction.Axis axis) {
 		return orderedByDistance(pos, hit, dir -> dir.getAxis() == axis);

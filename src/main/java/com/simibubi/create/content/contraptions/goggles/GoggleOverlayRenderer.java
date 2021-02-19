@@ -1,9 +1,16 @@
 package com.simibubi.create.content.contraptions.goggles;
 
+import static com.simibubi.create.content.contraptions.goggles.IHaveGoggleInformation.spacing;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllItems;
 import com.simibubi.create.CreateClient;
+import com.simibubi.create.content.contraptions.components.structureMovement.IDisplayAssemblyExceptions;
 import com.simibubi.create.content.contraptions.components.structureMovement.piston.MechanicalPistonBlock;
 import com.simibubi.create.content.contraptions.components.structureMovement.piston.PistonExtensionPoleBlock;
 import com.simibubi.create.foundation.config.AllConfigs;
@@ -13,6 +20,7 @@ import com.simibubi.create.foundation.utility.Iterate;
 import com.simibubi.create.foundation.utility.Lang;
 import com.simibubi.create.foundation.utility.outliner.Outline;
 import com.simibubi.create.foundation.utility.outliner.Outliner.OutlineEntry;
+
 import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.Screen;
@@ -30,12 +38,6 @@ import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import static com.simibubi.create.content.contraptions.goggles.IHaveGoggleInformation.spacing;
 
 @EventBusSubscriber(value = Dist.CLIENT)
 public class GoggleOverlayRenderer {
@@ -90,6 +92,14 @@ public class GoggleOverlayRenderer {
 
 			if (goggleAddedInformation && !hoverAddedInformation)
 				tooltip.remove(tooltip.size() - 1);
+		}
+
+		if (te instanceof IDisplayAssemblyExceptions) {
+			boolean exceptionAdded = ((IDisplayAssemblyExceptions) te).addExceptionToTooltip(tooltip);
+			if (exceptionAdded) {
+				hasHoveringInformation = true;
+				hoverAddedInformation = true;
+			}
 		}
 
 		// break early if goggle or hover returned false when present

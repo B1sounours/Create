@@ -1,14 +1,20 @@
 package com.simibubi.create.content.contraptions.components.structureMovement.piston;
 
+import static com.simibubi.create.content.contraptions.components.structureMovement.piston.MechanicalPistonBlock.isExtensionPole;
+import static com.simibubi.create.content.contraptions.components.structureMovement.piston.MechanicalPistonBlock.isPiston;
+import static com.simibubi.create.content.contraptions.components.structureMovement.piston.MechanicalPistonBlock.isPistonHead;
+
+import java.util.function.Predicate;
+
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllShapes;
-import com.simibubi.create.content.contraptions.components.structureMovement.piston.MechanicalPistonBlock.*;
+import com.simibubi.create.content.contraptions.components.structureMovement.piston.MechanicalPistonBlock.PistonState;
 import com.simibubi.create.content.contraptions.wrench.IWrenchable;
 import com.simibubi.create.foundation.block.ProperDirectionalBlock;
 import com.simibubi.create.foundation.utility.placement.IPlacementHelper;
 import com.simibubi.create.foundation.utility.placement.PlacementHelpers;
-import com.simibubi.create.foundation.utility.placement.PlacementOffset;
 import com.simibubi.create.foundation.utility.placement.util.PoleHelper;
+
 import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -17,6 +23,7 @@ import net.minecraft.block.material.PushReaction;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.fluid.IFluidState;
+import net.minecraft.item.BlockItem;
 import net.minecraft.item.BlockItemUseContext;
 import net.minecraft.item.ItemStack;
 import net.minecraft.state.StateContainer.Builder;
@@ -33,10 +40,6 @@ import net.minecraft.util.math.shapes.VoxelShape;
 import net.minecraft.world.IBlockReader;
 import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
-
-import java.util.function.Predicate;
-
-import static com.simibubi.create.content.contraptions.components.structureMovement.piston.MechanicalPistonBlock.*;
 
 public class PistonExtensionPoleBlock extends ProperDirectionalBlock implements IWrenchable, IWaterLoggable {
 
@@ -114,26 +117,9 @@ public class PistonExtensionPoleBlock extends ProperDirectionalBlock implements 
     public ActionResultType onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockRayTraceResult ray) {
         ItemStack heldItem = player.getHeldItem(hand);
 
-        if (AllBlocks.PISTON_EXTENSION_POLE.isIn(heldItem) && !player.isSneaking()) {
-            IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
-            PlacementOffset offset = placementHelper.getOffset(world, state, pos, ray);
-
-            if (!offset.isReplaceable(world))
-                return ActionResultType.PASS;
-
-            offset.placeInWorld(world, AllBlocks.PISTON_EXTENSION_POLE.getDefaultState(), player, heldItem);
-
-            /*BlockPos newPos = new BlockPos(offset.getPos());
-
-            if (world.isRemote)
-                return ActionResultType.SUCCESS;
-
-            world.setBlockState(newPos, offset.getTransform().apply(AllBlocks.PISTON_EXTENSION_POLE.getDefaultState()));
-            if (!player.isCreative())
-                heldItem.shrink(1);*/
-
-            return ActionResultType.SUCCESS;
-        }
+        IPlacementHelper placementHelper = PlacementHelpers.get(placementHelperId);
+        if (placementHelper.matchesItem(heldItem) && !player.isSneaking())
+            return placementHelper.getOffset(world, state, pos, ray).placeInWorld(world, (BlockItem) heldItem.getItem(), player, hand, ray);
 
         return ActionResultType.PASS;
     }

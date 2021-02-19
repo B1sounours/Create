@@ -6,7 +6,9 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import com.simibubi.create.content.contraptions.base.KineticTileEntity;
 import com.simibubi.create.content.contraptions.components.structureMovement.AbstractContraptionEntity;
+import com.simibubi.create.content.contraptions.components.structureMovement.AssemblyException;
 import com.simibubi.create.content.contraptions.components.structureMovement.ControlledContraptionEntity;
+import com.simibubi.create.content.contraptions.components.structureMovement.IDisplayAssemblyExceptions;
 import com.simibubi.create.content.contraptions.components.structureMovement.bearing.ClockworkContraption.HandType;
 import com.simibubi.create.foundation.advancement.AllTriggers;
 import com.simibubi.create.foundation.gui.AllIcons;
@@ -26,7 +28,7 @@ import net.minecraft.util.Direction.Axis;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 
-public class ClockworkBearingTileEntity extends KineticTileEntity implements IBearingTileEntity {
+public class ClockworkBearingTileEntity extends KineticTileEntity implements IBearingTileEntity, IDisplayAssemblyExceptions {
 
 	protected ControlledContraptionEntity hourHand;
 	protected ControlledContraptionEntity minuteHand;
@@ -37,6 +39,7 @@ public class ClockworkBearingTileEntity extends KineticTileEntity implements IBe
 
 	protected boolean running;
 	protected boolean assembleNextTick;
+	protected AssemblyException lastException;
 
 	protected ScrollOptionBehaviour<ClockHands> operationMode;
 
@@ -103,6 +106,11 @@ public class ClockworkBearingTileEntity extends KineticTileEntity implements IBe
 		}
 
 		applyRotations();
+	}
+
+	@Override
+	public AssemblyException getLastAssemblyException() {
+		return lastException;
 	}
 
 	protected void applyRotations() {
@@ -199,8 +207,15 @@ public class ClockworkBearingTileEntity extends KineticTileEntity implements IBe
 		Direction direction = getBlockState().get(BlockStateProperties.FACING);
 
 		// Collect Construct
-		Pair<ClockworkContraption, ClockworkContraption> contraption =
-			ClockworkContraption.assembleClockworkAt(world, pos, direction);
+		Pair<ClockworkContraption, ClockworkContraption> contraption;
+		try {
+			contraption = ClockworkContraption.assembleClockworkAt(world, pos, direction);
+			lastException = null;
+		} catch (AssemblyException e) {
+			lastException = e;
+			sendData();
+			return;
+		}
 		if (contraption == null)
 			return;
 		if (contraption.getLeft() == null)
@@ -284,6 +299,7 @@ public class ClockworkBearingTileEntity extends KineticTileEntity implements IBe
 		compound.putBoolean("Running", running);
 		compound.putFloat("HourAngle", hourAngle);
 		compound.putFloat("MinuteAngle", minuteAngle);
+		AssemblyException.write(compound, lastException);
 		super.write(compound, clientPacket);
 	}
 
@@ -295,6 +311,7 @@ public class ClockworkBearingTileEntity extends KineticTileEntity implements IBe
 		running = compound.getBoolean("Running");
 		hourAngle = compound.getFloat("HourAngle");
 		minuteAngle = compound.getFloat("MinuteAngle");
+		lastException = AssemblyException.read(compound);
 		super.read(compound, clientPacket);
 
 		if (!clientPacket)
@@ -393,4 +410,8 @@ public class ClockworkBearingTileEntity extends KineticTileEntity implements IBe
 		return pos;
 	}
 
+	@Override
+	public boolean shouldRenderAsTE() {
+		return true;
+	}
 }

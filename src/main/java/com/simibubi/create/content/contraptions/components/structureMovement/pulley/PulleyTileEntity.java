@@ -1,6 +1,7 @@
 package com.simibubi.create.content.contraptions.components.structureMovement.pulley;
 
 import com.simibubi.create.AllBlocks;
+import com.simibubi.create.content.contraptions.components.structureMovement.AssemblyException;
 import com.simibubi.create.content.contraptions.components.structureMovement.BlockMovementTraits;
 import com.simibubi.create.content.contraptions.components.structureMovement.ContraptionCollider;
 import com.simibubi.create.content.contraptions.components.structureMovement.ControlledContraptionEntity;
@@ -32,8 +33,8 @@ public class PulleyTileEntity extends LinearActuatorTileEntity {
 	}
 
 	@Override
-	public AxisAlignedBB getRenderBoundingBox() {
-		return super.getRenderBoundingBox().expand(0, -offset, 0);
+	public AxisAlignedBB makeRenderBoundingBox() {
+		return super.makeRenderBoundingBox().expand(0, -offset, 0);
 	}
 
 	@Override
@@ -42,7 +43,7 @@ public class PulleyTileEntity extends LinearActuatorTileEntity {
 	}
 
 	@Override
-	protected void assemble() {
+	protected void assemble() throws AssemblyException {
 		if (!(world.getBlockState(pos)
 			.getBlock() instanceof PulleyBlock))
 			return;
@@ -176,9 +177,10 @@ public class PulleyTileEntity extends LinearActuatorTileEntity {
 			return;
 
 		BlockPos posBelow = pos.down((int) (offset + getMovementSpeed()) + 1);
-		if (!BlockMovementTraits.movementNecessary(world, posBelow))
+		BlockState state = world.getBlockState(posBelow);
+		if (!BlockMovementTraits.movementNecessary(state, world, posBelow))
 			return;
-		if (BlockMovementTraits.isBrittle(world.getBlockState(posBelow)))
+		if (BlockMovementTraits.isBrittle(state))
 			return;
 
 		disassemble();

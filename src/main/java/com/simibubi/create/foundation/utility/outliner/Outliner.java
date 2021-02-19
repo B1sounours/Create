@@ -10,10 +10,10 @@ import java.util.Set;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.simibubi.create.foundation.renderState.SuperRenderTypeBuffer;
 import com.simibubi.create.foundation.tileEntity.behaviour.ValueBox;
+import com.simibubi.create.foundation.utility.AnimationTickHolder;
 import com.simibubi.create.foundation.utility.outliner.LineOutline.EndChasingLineOutline;
 import com.simibubi.create.foundation.utility.outliner.Outline.OutlineParams;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
@@ -55,6 +55,13 @@ public class Outliner {
 		((EndChasingLineOutline) entry.outline).setProgress(chasingProgress)
 			.set(start, end);
 		return entry.outline.getParams();
+	}
+
+	public OutlineParams showAABB(Object slot, AxisAlignedBB bb, int ttl) {
+		createAABBOutlineIfMissing(slot, bb);
+		ChasingAABBOutline outline = getAndRefreshAABB(slot, ttl);
+		outline.prevBB = outline.targetBB = bb;
+		return outline.getParams();
 	}
 
 	public OutlineParams showAABB(Object slot, AxisAlignedBB bb) {
@@ -112,6 +119,12 @@ public class Outliner {
 		return (ChasingAABBOutline) entry.getOutline();
 	}
 
+	private ChasingAABBOutline getAndRefreshAABB(Object slot, int ttl) {
+		OutlineEntry entry = outlines.get(slot);
+		entry.ticksTillRemoval = ttl;
+		return (ChasingAABBOutline) entry.getOutline();
+	}
+
 	// Maintenance
 
 	public Outliner() {
@@ -143,8 +156,7 @@ public class Outliner {
 				float fadeticks = OutlineEntry.fadeTicks;
 				float lastAlpha = prevTicks >= 0 ? 1 : 1 + (prevTicks / fadeticks);
 				float currentAlpha = 1 + (entry.ticksTillRemoval / fadeticks);
-				float alpha = MathHelper.lerp(Minecraft.getInstance()
-					.getRenderPartialTicks(), lastAlpha, currentAlpha);
+				float alpha = MathHelper.lerp(AnimationTickHolder.getPartialTicks(), lastAlpha, currentAlpha);
 
 				outline.params.alpha = alpha * alpha * alpha;
 				if (outline.params.alpha < 1 / 8f)
